@@ -142,7 +142,7 @@ function initGame() {
         y: cellY(13), // ピクセル位置
         dir: { x: 1, y: 0 }, // 現在の進行方向
         nextDir: { x: 1, y: 0 }, // 次に曲がりたい方向
-        speed: 2,
+        speed: 25,
         mouthAngle: 0,
         mouthOpen: true,
     };
