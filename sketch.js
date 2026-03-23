@@ -155,7 +155,7 @@ function initGame() {
         y: cellY(1),
         dir: { x: 1, y: 0 },
         speed: 2,
-        clr: color(255, 0, 0),
+        clr: color(255, 255, 255),
     });
     ghosts.push({
         col: 13,
@@ -164,26 +164,75 @@ function initGame() {
         y: cellY(1),
         dir: { x: -1, y: 0 },
         speed: 2,
-        clr: color(255, 184, 255),
+        clr: color(255, 255, 255),
     });
 
     score = 0;
 }
 
 // マップを表示する (02)
-function drawMap() {}
+function drawMap() {
+    noStroke();
+    for (let r =0; r< map.length;r++){
+        for(let c = 0; c < map[r].length; c++){
+            if(map[r][c] == 1){
+                fill(0,225,225);
+                rect(c * CELL_SIZE, r * CELL_SIZE,CELL_SIZE,CELL_SIZE);
+            }
+        }
+    }
+}
 
 // ドットを表示する (03)
-function drawDots() {}
+function drawDots() {
+    fill(255);
+    noStroke();
+    for(let r = 0; r < dots.length; r++){
+        for(let c =0; c < dots[r].length; c++){
+            if(dots[r][c]){
+                circle(cellX(c), cellY(r),8);
+            }
+        }
+    }
+}
 
 // ドットを食べる判定 (04)
-function checkEatDots() {}
+function checkEatDots() {
+    let c = floor(pacman.x / CELL_SIZE);
+    let r = floor(pacman.y / CELL_SIZE);
+
+    if (r < 0 || r >= dots.length || c < 0 || c >= dots[r].length) return;
+    
+    if (dots[r][c]) {
+        dots[r][c] = false;
+        score += 10;
+    }
+}
 
 // ゴーストとの当たり判定 (05)
-function checkHitGhost() {}
+function checkHitGhost() {
+    for (let i = 0; i < ghosts.length; i++){
+        let d = dist(pacman.x, pacman.y, ghosts[i].x, ghosts[i].y);
+        if(d < CELL_SIZE) {
+            mode = 2;
+        }
+    }
+}
 
 // 全部食べたか確認する (06)
-function checkClear() {}
+function checkClear() {
+    let remaining = 0;
+    for (let r = 0; r < dots.length; r++) {
+        for (let c = 0; c < dots[r].length; c++) {
+            if (dots[r][c]) {
+                remaining = remaining + 1;
+            }
+        }
+    }
+    if (remaining == 0) {
+        mode = 3;
+    }
+}
 
 // パックマンを表示する
 function drawPacman() {
@@ -364,6 +413,9 @@ function pacman_shape(x, y, radius, mouthAngle, dir) {
     noStroke();
     fill("yellow");
     arc(0, 0, radius * 2, radius * 2, mouthAngle, 360 - mouthAngle, PIE);
+    fill("black");
+    ellipse(-radius * 0.3, -radius * 0.2, radius * 0.2, radius * 0.2);
+    ellipse(radius * 0.3, -radius * 0.2, radius * 0.2, radius * 0.2);
     pop();
 }
 
@@ -374,11 +426,8 @@ function ghost_shape(x, y, radius, clr) {
     fill(clr);
     arc(0, 0, radius * 2, radius * 2, 180, 360);
     rect(-radius, 0, radius * 2, radius);
-    fill("white");
+    fill("black");
     ellipse(-radius * 0.35, -radius * 0.1, radius * 0.5, radius * 0.65);
     ellipse(radius * 0.35, -radius * 0.1, radius * 0.5, radius * 0.65);
-    fill("black");
-    ellipse(-radius * 0.3, -radius * 0.05, radius * 0.25, radius * 0.35);
-    ellipse(radius * 0.4, -radius * 0.05, radius * 0.25, radius * 0.35);
     pop();
 }
