@@ -1,6 +1,10 @@
 // --- 変数の宣言 ---
 let mode = 0; // 0: スタート, 1: プレイ中, 2: ゲームオーバー, 3: クリア
 let CELL_SIZE = 40; // 1マスのピクセルサイズ
+let moveSound;
+let hitSound;
+let clearSound;
+let ghostImage;
 
 // マップの2次元配列: 1=壁, 0=通路（ドットあり）
 let map = [
@@ -27,6 +31,16 @@ let dots = []; // 2次元配列: dots[行][列] = true でドットあり
 let score;
 
 // --- 初期化 ---
+function preload() {
+    moveSound = loadSound('onnsei/高速移動.mp3');
+    moveSound.setVolume(0.1);
+    hitSound = loadSound('onnsei/ボヨン.mp3');
+    hitSound.setVolume(0.5);
+    clearSound = loadSound('onnsei/放送終了チャイム.mp3');
+    clearSound.setVolume(0.5);
+    ghostImage = loadImage('gazou/ma-meido.JPG');
+}
+
 function setup() {
     createCanvas(600, 600);
     angleMode(DEGREES);
@@ -142,7 +156,7 @@ function initGame() {
         y: cellY(13), // ピクセル位置
         dir: { x: 1, y: 0 }, // 現在の進行方向
         nextDir: { x: 1, y: 0 }, // 次に曲がりたい方向
-        speed: 25,
+        speed: 15,
         mouthAngle: 0,
         mouthOpen: true,
     };
@@ -154,7 +168,7 @@ function initGame() {
         x: cellX(1),
         y: cellY(1),
         dir: { x: 1, y: 0 },
-        speed: 2,
+        speed: 1,
         clr: color(255, 255, 255),
     });
     ghosts.push({
@@ -173,19 +187,21 @@ function initGame() {
 // マップを表示する (02)
 function drawMap() {
     noStroke();
-    for (let r =0; r< map.length;r++){
-        for(let c = 0; c < map[r].length; c++){
-            if(map[r][c] == 1){
-                fill(0,225,225);
-                rect(c * CELL_SIZE, r * CELL_SIZE,CELL_SIZE,CELL_SIZE);
+    for (let r = 0; r < map.length; r++) {
+        for (let c = 0; c < map[r].length; c++) {
+            if (map[r][c] == 0) {
+                fill(255); // 通路を白色に
+            } else {
+                fill(0, 225, 225); // 壁の色はそのまま
             }
+            rect(c * CELL_SIZE, r * CELL_SIZE, CELL_SIZE, CELL_SIZE);
         }
     }
 }
 
 // ドットを表示する (03)
 function drawDots() {
-    fill(255);
+    fill(0); // ドットの色を黒に変更
     noStroke();
     for(let r = 0; r < dots.length; r++){
         for(let c =0; c < dots[r].length; c++){
@@ -215,6 +231,7 @@ function checkHitGhost() {
         let d = dist(pacman.x, pacman.y, ghosts[i].x, ghosts[i].y);
         if(d < CELL_SIZE) {
             mode = 2;
+            hitSound.play();
         }
     }
 }
@@ -231,6 +248,7 @@ function checkClear() {
     }
     if (remaining == 0) {
         mode = 3;
+        clearSound.play();
     }
 }
 
@@ -272,6 +290,7 @@ function updatePacman() {
             }
             pacman.col = wc;
             pacman.row = wr;
+            if (random() < 0.2) moveSound.play();
         }
     }
 
@@ -304,7 +323,14 @@ function changeDirection() {
 // ゴーストを表示する
 function drawGhosts() {
     for (let i = 0; i < ghosts.length; i++) {
-        ghost_shape(ghosts[i].x, ghosts[i].y, CELL_SIZE / 2 - 2, ghosts[i].clr);
+        let g = ghosts[i];
+        let r = CELL_SIZE / 2 - 2;
+        if (ghostImage) {
+            imageMode(CENTER);
+            image(ghostImage, g.x, g.y, r * 2, r * 2);
+        } else {
+            ghost_shape(g.x, g.y, r, g.clr);
+        }
     }
 }
 
