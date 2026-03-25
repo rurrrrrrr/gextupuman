@@ -81,6 +81,22 @@ function keyPressed() {
     }
 }
 
+// --- タッチ操作 ---
+function touchStarted() {
+    if (mode == 1) {
+        setDirectionFromTouch();
+    } else if (mode == 0 && touches.length > 0) {
+        initGame();
+        mode = 1;
+        if (bgMusic && !bgMusic.isPlaying()) {
+            bgMusic.loop();
+        }
+    } else if ((mode == 2 || mode == 3) && touches.length > 0) {
+        mode = 0;
+    }
+    return false; // デフォルトのタッチ動作を防ぐ
+}
+
 // --- 画面表示 ---
 function showStartScreen() {
     drawMap();
@@ -361,6 +377,28 @@ function changeDirection() {
     if (keyCode == RIGHT_ARROW) pacman.nextDir = { x: 1, y: 0 };
     if (keyCode == UP_ARROW) pacman.nextDir = { x: 0, y: -1 };
     if (keyCode == DOWN_ARROW) pacman.nextDir = { x: 0, y: 1 };
+}
+
+// タッチ位置から方向を設定する
+function setDirectionFromTouch() {
+    let touchX = mouseX; // p5.js では touchStarted で mouseX, mouseY がタッチ位置
+    let touchY = mouseY;
+    let centerX = width / 2;
+    let centerY = height / 2;
+
+    if (touchX < centerX && touchY < centerY) {
+        // 左上: 上
+        pacman.nextDir = { x: 0, y: -1 };
+    } else if (touchX > centerX && touchY < centerY) {
+        // 右上: 右
+        pacman.nextDir = { x: 1, y: 0 };
+    } else if (touchX < centerX && touchY > centerY) {
+        // 左下: 左
+        pacman.nextDir = { x: -1, y: 0 };
+    } else if (touchX > centerX && touchY > centerY) {
+        // 右下: 下
+        pacman.nextDir = { x: 0, y: 1 };
+    }
 }
 
 // ゴーストを表示する
