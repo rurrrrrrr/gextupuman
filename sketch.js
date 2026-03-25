@@ -4,18 +4,19 @@ let CELL_SIZE = 40; // 1マスのピクセルサイズ
 let moveSound;
 let hitSound;
 let clearSound;
+let bgMusic;
 let ghostImage;
 
 // マップの2次元配列: 1=壁, 0=通路（ドットあり）
 let map = [
     [1, 1, 1, 1, 1, 1, 1, 0, 1, 1, 1, 1, 1, 1, 1],
-    [1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1],
+    [1, 0, 0, 0, 0, 0, 0, 2, 0, 0, 0, 0, 0, 0, 1],
     [1, 0, 1, 1, 0, 1, 0, 1, 0, 1, 0, 1, 1, 0, 1],
     [1, 0, 1, 1, 0, 1, 0, 1, 0, 1, 0, 1, 1, 0, 1],
     [1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1],
     [1, 0, 1, 0, 1, 1, 0, 1, 0, 1, 1, 0, 1, 0, 1],
     [1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1],
-    [0, 0, 1, 1, 0, 0, 0, 1, 0, 0, 0, 1, 1, 0, 0],
+    [0, 0, 1, 1, 0, 0, 0, 0, 0, 0, 0, 1, 1, 0, 0],
     [1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1],
     [1, 0, 1, 0, 1, 1, 0, 1, 0, 1, 1, 0, 1, 0, 1],
     [1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1],
@@ -35,9 +36,11 @@ function preload() {
     moveSound = loadSound('onnsei/高速移動.mp3');
     moveSound.setVolume(0.1);
     hitSound = loadSound('onnsei/ボヨン.mp3');
-    hitSound.setVolume(0.5);
+    hitSound.setVolume(0.3);
     clearSound = loadSound('onnsei/放送終了チャイム.mp3');
-    clearSound.setVolume(0.5);
+    clearSound.setVolume(0.3);
+    bgMusic = loadSound('onnsei/わんぱく大行進.mp3');
+    bgMusic.setVolume(0.2);
     ghostImage = loadImage('gazou/ma-meido.JPG');
 }
 
@@ -66,6 +69,9 @@ function keyPressed() {
     if (mode == 0 && key == " ") {
         initGame();
         mode = 1;
+        if (bgMusic && !bgMusic.isPlaying()) {
+            bgMusic.loop();
+        }
     } else if (mode == 1) {
         changeDirection();
     } else if (mode == 2 && key == " ") {
@@ -85,7 +91,7 @@ function showStartScreen() {
     fill("yellow");
     textSize(40);
     text("PAC-MAN", width / 2, height / 2 - 30);
-    fill("white");
+    fill("blue");
     textSize(18);
     text("SPACE キーでスタート", width / 2, height / 2 + 20);
 }
@@ -113,7 +119,7 @@ function showGameOver() {
     fill("red");
     textSize(40);
     text("GAME OVER", width / 2, height / 2);
-    fill("white");
+    fill("blue");
     textSize(18);
     text("SPACE キーでタイトルへ", width / 2, height / 2 + 50);
 }
@@ -134,6 +140,10 @@ function showClearScreen() {
 
 // ゲームを初期化する
 function initGame() {
+    // ゴーストの出現位置を壁にする
+    map[1][1] = 1;
+    map[1][13] = 1;
+
     // mapの2次元配列からdotsの2次元配列を生成する
     dots = [];
     for (let r = 0; r < map.length; r++) {
@@ -144,7 +154,8 @@ function initGame() {
                 r == 0 ||
                 r == map.length - 1 ||
                 c == 0 ||
-                c == map[r].length - 1;
+                c == map[r].length - 1 ||
+                (r == 1 && (c == 1 || c == 13)); // ゴースト出現位置の壁にもドットを置かない
             dots[r].push(map[r][c] == 0 && !isBorder);
         }
     }
@@ -156,7 +167,10 @@ function initGame() {
         y: cellY(13), // ピクセル位置
         dir: { x: 1, y: 0 }, // 現在の進行方向
         nextDir: { x: 1, y: 0 }, // 次に曲がりたい方向
+        baseSpeed: 15,
         speed: 15,
+        slowed: false,
+        slowStartTime: 0,
         mouthAngle: 0,
         mouthOpen: true,
     };
@@ -164,18 +178,18 @@ function initGame() {
     ghosts = [];
     ghosts.push({
         col: 1,
-        row: 1,
+        row: 2, // 出現位置の壁を避けるためrowを2に変更
         x: cellX(1),
-        y: cellY(1),
+        y: cellY(2),
         dir: { x: 1, y: 0 },
         speed: 1,
         clr: color(255, 255, 255),
     });
     ghosts.push({
         col: 13,
-        row: 1,
+        row: 2, // 出現位置の壁を避けるためrowを2に変更
         x: cellX(13),
-        y: cellY(1),
+        y: cellY(2),
         dir: { x: -1, y: 0 },
         speed: 2,
         clr: color(255, 255, 255),
@@ -191,8 +205,14 @@ function drawMap() {
         for (let c = 0; c < map[r].length; c++) {
             if (map[r][c] == 0) {
                 fill(255); // 通路を白色に
+            } else if (map[r][c] == 2) {
+                fill(255); // 速度低下床を水色に
             } else {
-                fill(0, 225, 225); // 壁の色はそのまま
+                if (r == 1 && (c == 1 || c == 13)) {
+                    fill("blue"); // ゲームオーバー壁を青に
+                } else {
+                    fill(0, 225, 225); // 通常の壁の色
+                }
             }
             rect(c * CELL_SIZE, r * CELL_SIZE, CELL_SIZE, CELL_SIZE);
         }
@@ -232,6 +252,7 @@ function checkHitGhost() {
         if(d < CELL_SIZE) {
             mode = 2;
             hitSound.play();
+            if (bgMusic) bgMusic.stop();
         }
     }
 }
@@ -249,6 +270,7 @@ function checkClear() {
     if (remaining == 0) {
         mode = 3;
         clearSound.play();
+        if (bgMusic) bgMusic.stop();
     }
 }
 
@@ -291,6 +313,12 @@ function updatePacman() {
             pacman.col = wc;
             pacman.row = wr;
             if (random() < 0.2) moveSound.play();
+        } else {
+            // 壁にぶつかった場合、特定の壁ならゲームオーバー
+            if ((fc == 1 && fr == 1) || (fc == 13 && fr == 1)) {
+                mode = 2;
+                if (bgMusic) bgMusic.stop();
+            }
         }
     }
 
@@ -301,6 +329,21 @@ function updatePacman() {
     else if (pacman.x > tx) pacman.x = max(pacman.x - pacman.speed, tx);
     if (pacman.y < ty) pacman.y = min(pacman.y + pacman.speed, ty);
     else if (pacman.y > ty) pacman.y = max(pacman.y - pacman.speed, ty);
+
+    // 速度低下床の効果（踏んだら10秒間）
+    if (!pacman.slowed && map[pacman.row][pacman.col] == 2) {
+        pacman.slowed = true;
+        pacman.speed = 7;
+        pacman.slowStartTime = millis();
+    }
+    if (pacman.slowed) {
+        if (millis() - pacman.slowStartTime > 10000) {
+            pacman.slowed = false;
+            pacman.speed = pacman.baseSpeed;
+        }
+    } else {
+        pacman.speed = pacman.baseSpeed;
+    }
 
     // 口の開閉アニメーション
     if (pacman.mouthOpen) {
@@ -412,10 +455,11 @@ function cellY(row) {
 }
 
 // 指定のマスが通路かどうかを返す（端は反対側へワープして判定）
+// 0 = 通路, 2 = 速度低下床 (通路扱い)
 function isPath(col, row) {
     let c = wrapCol(col);
     let r = wrapRow(row);
-    return map[r][c] == 0;
+    return map[r][c] == 0 || map[r][c] == 2;
 }
 
 // 列番号を端でワープさせる
