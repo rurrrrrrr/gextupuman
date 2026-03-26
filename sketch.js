@@ -265,7 +265,7 @@ function drawMap() {
             if (map[r][c] == 0) {
                 fill(255); // 通路を白色に
             } else if (map[r][c] == 2) {
-                fill(255); // 速度低下床を水色に
+                fill("#f5f5f5"); // 速度低下床を水色に
             } else {
                 if (r == 1 && (c == 1 || c == 13)) {
                     fill("blue"); // ゲームオーバー壁を青に
