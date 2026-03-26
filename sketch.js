@@ -31,6 +31,12 @@ let ghosts = [];
 let dots = []; // 2次元配列: dots[行][列] = true でドットあり
 let score;
 
+// 十字キーの設定
+let DPAD_SIZE = 50; // ボタンのサイズ
+let DPAD_MARGIN = 20; // 画面端からの余白
+let DPAD_X = 600 + 50; // 十字キーの中心X座標（マップの右側）
+let DPAD_Y = 600 + 50; // 十字キーの中心Y座標（マップの下側）
+
 // --- 初期化 ---
 function preload() {
     moveSound = loadSound('onnsei/高速移動.mp3');
@@ -45,14 +51,14 @@ function preload() {
 }
 
 function setup() {
-    createCanvas(600, 600);
+    createCanvas(800, 800);
     angleMode(DEGREES);
     initGame();
 }
 
 // --- メインループ ---
 function draw() {
-    background(0);
+    background(255);
     if (mode == 0) {
         showStartScreen();
     } else if (mode == 1) {
@@ -83,16 +89,22 @@ function keyPressed() {
 
 // --- タッチ操作 ---
 function touchStarted() {
-    if (mode == 1) {
-        setDirectionFromTouch();
-    } else if (mode == 0 && touches.length > 0) {
-        initGame();
-        mode = 1;
-        if (bgMusic && !bgMusic.isPlaying()) {
-            bgMusic.loop();
+    if (typeof touches !== 'undefined' && touches.length > 0) {
+        let touchX = touches[0].x;
+        let touchY = touches[0].y;
+        
+        if (mode == 1) {
+            // 十字キーが押されたか確認
+            checkDpadPress(touchX, touchY);
+        } else if (mode == 0) {
+            initGame();
+            mode = 1;
+            if (bgMusic && !bgMusic.isPlaying()) {
+                bgMusic.loop();
+            }
+        } else if (mode == 2 || mode == 3) {
+            mode = 0;
         }
-    } else if ((mode == 2 || mode == 3) && touches.length > 0) {
-        mode = 0;
     }
     return false; // デフォルトのタッチ動作を防ぐ
 }
@@ -106,10 +118,10 @@ function showStartScreen() {
     textAlign(CENTER);
     fill("yellow");
     textSize(40);
-    text("PAC-MAN", width / 2, height / 2 - 30);
+    text("PAC-MAN", width / 2 - 100, height / 2 - 30 - 100);
     fill("blue");
     textSize(18);
-    text("SPACE キーでスタート", width / 2, height / 2 + 20);
+    text("SPACE キーでスタート", width / 2 - 100, height / 2 + 20 - 100);
 }
 
 function playGame() {
@@ -123,6 +135,7 @@ function playGame() {
     drawPacman();
     drawGhosts();
     drawScore();
+    drawDpad();
 }
 
 function showGameOver() {
@@ -134,10 +147,10 @@ function showGameOver() {
     textAlign(CENTER);
     fill("red");
     textSize(40);
-    text("GAME OVER", width / 2, height / 2);
+    text("GAME OVER", width / 2 - 100, height / 2 - 100);
     fill("blue");
     textSize(18);
-    text("SPACE キーでタイトルへ", width / 2, height / 2 + 50);
+    text("SPACE キーでタイトルへ", width / 2 - 100, height / 2 + 50 - 100);
 }
 
 function showClearScreen() {
@@ -148,10 +161,10 @@ function showClearScreen() {
     textAlign(CENTER);
     fill("yellow");
     textSize(40);
-    text("STAGE CLEAR!", width / 2, height / 2);
+    text("STAGE CLEAR!", width / 2 - 100, height / 2 - 100);
     fill("white");
     textSize(18);
-    text("SPACE キーでタイトルへ", width / 2, height / 2 + 50);
+    text("SPACE キーでタイトルへ", width / 2 - 100, height / 2 + 50 - 100);
 }
 
 // ゲームを初期化する
@@ -184,7 +197,7 @@ function initGame() {
         dir: { x: 1, y: 0 }, // 現在の進行方向
         nextDir: { x: 1, y: 0 }, // 次に曲がりたい方向
         baseSpeed: 15,
-        speed: 15,
+        speed: 10,
         slowed: false,
         slowStartTime: 0,
         mouthAngle: 0,
@@ -379,25 +392,81 @@ function changeDirection() {
     if (keyCode == DOWN_ARROW) pacman.nextDir = { x: 0, y: 1 };
 }
 
-// タッチ位置から方向を設定する
-function setDirectionFromTouch() {
-    let touchX = mouseX; // p5.js では touchStarted で mouseX, mouseY がタッチ位置
-    let touchY = mouseY;
-    let centerX = width / 2;
-    let centerY = height / 2;
+// 十字キーの描画
+function drawDpad() {
+    let offsetX = DPAD_SIZE + 12;
+    let offsetY = DPAD_SIZE + 12;
+    
+    // 背景
+    fill(50);
+    stroke(100);
+    strokeWeight(2);
+    rect(DPAD_X - offsetX, DPAD_Y - offsetY, offsetX * 2, offsetY * 2, 10);
+    
+    // ボタンの色
+    let btnColor = color(100, 150, 200);
+    
+    // 上ボタン
+    drawDpadButton(DPAD_X, DPAD_Y - offsetY + 15, 0, btnColor);
+    // 下ボタン
+    drawDpadButton(DPAD_X, DPAD_Y + offsetY - 15, 1, btnColor);
+    // 左ボタン
+    drawDpadButton(DPAD_X - offsetX + 15, DPAD_Y, 2, btnColor);
+    // 右ボタン
+    drawDpadButton(DPAD_X + offsetX - 15, DPAD_Y, 3, btnColor);
+}
 
-    if (touchX < centerX && touchY < centerY) {
-        // 左上: 上
+// 十字キーのボタン描画
+function drawDpadButton(x, y, direction, color) {
+    fill(color);
+    stroke(200);
+    strokeWeight(1);
+    rect(x - DPAD_SIZE/2, y - DPAD_SIZE/2, DPAD_SIZE, DPAD_SIZE, 5);
+    
+    // 矢印を描画
+    fill(255);
+    textAlign(CENTER, CENTER);
+    textSize(20);
+    
+    if (direction == 0) {
+        text("▲", x, y);
+    } else if (direction == 1) {
+        text("▼", x, y);
+    } else if (direction == 2) {
+        text("◀", x, y);
+    } else if (direction == 3) {
+        text("▶", x, y);
+    }
+}
+
+// 十字キーのタッチを判定
+function checkDpadPress(touchX, touchY) {
+    let offsetX = DPAD_SIZE + 12;
+    let offsetY = DPAD_SIZE + 12;
+    
+    // 上ボタン
+    if (touchX >= DPAD_X - DPAD_SIZE/2 && touchX <= DPAD_X + DPAD_SIZE/2 &&
+        touchY >= DPAD_Y - offsetY && touchY <= DPAD_Y - offsetY + DPAD_SIZE) {
         pacman.nextDir = { x: 0, y: -1 };
-    } else if (touchX > centerX && touchY < centerY) {
-        // 右上: 右
-        pacman.nextDir = { x: 1, y: 0 };
-    } else if (touchX < centerX && touchY > centerY) {
-        // 左下: 左
-        pacman.nextDir = { x: -1, y: 0 };
-    } else if (touchX > centerX && touchY > centerY) {
-        // 右下: 下
+        return;
+    }
+    // 下ボタン
+    if (touchX >= DPAD_X - DPAD_SIZE/2 && touchX <= DPAD_X + DPAD_SIZE/2 &&
+        touchY >= DPAD_Y + offsetY - DPAD_SIZE && touchY <= DPAD_Y + offsetY) {
         pacman.nextDir = { x: 0, y: 1 };
+        return;
+    }
+    // 左ボタン
+    if (touchX >= DPAD_X - offsetX && touchX <= DPAD_X - offsetX + DPAD_SIZE &&
+        touchY >= DPAD_Y - DPAD_SIZE/2 && touchY <= DPAD_Y + DPAD_SIZE/2) {
+        pacman.nextDir = { x: -1, y: 0 };
+        return;
+    }
+    // 右ボタン
+    if (touchX >= DPAD_X + offsetX - DPAD_SIZE && touchX <= DPAD_X + offsetX &&
+        touchY >= DPAD_Y - DPAD_SIZE/2 && touchY <= DPAD_Y + DPAD_SIZE/2) {
+        pacman.nextDir = { x: 1, y: 0 };
+        return;
     }
 }
 
