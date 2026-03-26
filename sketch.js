@@ -35,7 +35,7 @@ let score;
 let DPAD_SIZE = 60; // ボタンのサイズ（iPad対応で少し大きく）
 let DPAD_MARGIN = 20; // 画面端からの余白
 let DPAD_X = 600 + 50; // 十字キーの中心X座標（マップの右側）
-let DPAD_Y = 600 + 50; // 十字キーの中心Y座標（マップの下側）
+let DPAD_Y = 400; // 十字キーの中心Y座標（マップの上側）
 
 // --- 初期化 ---
 function preload() {
@@ -424,7 +424,7 @@ function changeDirection() {
 
 // 十字キーの描画
 function drawDpad() {
-    let offsetX = DPAD_SIZE + 12;
+    let offsetX = DPAD_SIZE + 12 ;
     let offsetY = DPAD_SIZE + 12;
     
     // 背景
