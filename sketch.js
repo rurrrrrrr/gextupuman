@@ -32,7 +32,7 @@ let dots = []; // 2次元配列: dots[行][列] = true でドットあり
 let score;
 
 // 十字キーの設定
-let DPAD_SIZE = 50; // ボタンのサイズ
+let DPAD_SIZE = 60; // ボタンのサイズ（iPad対応で少し大きく）
 let DPAD_MARGIN = 20; // 画面端からの余白
 let DPAD_X = 600 + 50; // 十字キーの中心X座標（マップの右側）
 let DPAD_Y = 600 + 50; // 十字キーの中心Y座標（マップの下側）
@@ -89,6 +89,11 @@ function keyPressed() {
 
 // --- タッチ操作 ---
 function touchStarted() {
+    // iPadなどのタッチデバイスでのデフォルト動作を防ぐ
+    if (typeof event !== 'undefined') {
+        event.preventDefault();
+    }
+    
     if (typeof touches !== 'undefined' && touches.length > 0) {
         let touchX = touches[0].x;
         let touchY = touches[0].y;
@@ -107,6 +112,31 @@ function touchStarted() {
         }
     }
     return false; // デフォルトのタッチ動作を防ぐ
+}
+
+// タッチ移動中の処理
+function touchMoved() {
+    // iPadなどのタッチデバイスでのデフォルト動作を防ぐ
+    if (typeof event !== 'undefined') {
+        event.preventDefault();
+    }
+    
+    if (mode == 1 && typeof touches !== 'undefined' && touches.length > 0) {
+        let touchX = touches[0].x;
+        let touchY = touches[0].y;
+        // 十字キーが押されたか確認
+        checkDpadPress(touchX, touchY);
+    }
+    return false;
+}
+
+// タッチ終了時の処理
+function touchEnded() {
+    // iPadなどのタッチデバイスでのデフォルト動作を防ぐ
+    if (typeof event !== 'undefined') {
+        event.preventDefault();
+    }
+    return false;
 }
 
 // --- 画面表示 ---
@@ -419,14 +449,14 @@ function drawDpad() {
 // 十字キーのボタン描画
 function drawDpadButton(x, y, direction, color) {
     fill(color);
-    stroke(200);
-    strokeWeight(1);
-    rect(x - DPAD_SIZE/2, y - DPAD_SIZE/2, DPAD_SIZE, DPAD_SIZE, 5);
+    stroke(255); // 境界を白くしてより見やすく
+    strokeWeight(2); // 境界を太く
+    rect(x - DPAD_SIZE/2, y - DPAD_SIZE/2, DPAD_SIZE, DPAD_SIZE, 8); // 角を丸く
     
     // 矢印を描画
     fill(255);
     textAlign(CENTER, CENTER);
-    textSize(20);
+    textSize(24); // 矢印を少し大きく
     
     if (direction == 0) {
         text("▲", x, y);
@@ -444,30 +474,34 @@ function checkDpadPress(touchX, touchY) {
     let offsetX = DPAD_SIZE + 12;
     let offsetY = DPAD_SIZE + 12;
     
+    // タッチ領域を少し広げる（iPad対応）
+    let touchTolerance = 10;
+    
     // 上ボタン
-    if (touchX >= DPAD_X - DPAD_SIZE/2 && touchX <= DPAD_X + DPAD_SIZE/2 &&
-        touchY >= DPAD_Y - offsetY && touchY <= DPAD_Y - offsetY + DPAD_SIZE) {
+    if (touchX >= (DPAD_X - DPAD_SIZE/2 - touchTolerance) && touchX <= (DPAD_X + DPAD_SIZE/2 + touchTolerance) &&
+        touchY >= (DPAD_Y - offsetY - touchTolerance) && touchY <= (DPAD_Y - offsetY + DPAD_SIZE + touchTolerance)) {
         pacman.nextDir = { x: 0, y: -1 };
-        return;
+        return true;
     }
     // 下ボタン
-    if (touchX >= DPAD_X - DPAD_SIZE/2 && touchX <= DPAD_X + DPAD_SIZE/2 &&
-        touchY >= DPAD_Y + offsetY - DPAD_SIZE && touchY <= DPAD_Y + offsetY) {
+    if (touchX >= (DPAD_X - DPAD_SIZE/2 - touchTolerance) && touchX <= (DPAD_X + DPAD_SIZE/2 + touchTolerance) &&
+        touchY >= (DPAD_Y + offsetY - DPAD_SIZE - touchTolerance) && touchY <= (DPAD_Y + offsetY + touchTolerance)) {
         pacman.nextDir = { x: 0, y: 1 };
-        return;
+        return true;
     }
     // 左ボタン
-    if (touchX >= DPAD_X - offsetX && touchX <= DPAD_X - offsetX + DPAD_SIZE &&
-        touchY >= DPAD_Y - DPAD_SIZE/2 && touchY <= DPAD_Y + DPAD_SIZE/2) {
+    if (touchX >= (DPAD_X - offsetX - touchTolerance) && touchX <= (DPAD_X - offsetX + DPAD_SIZE + touchTolerance) &&
+        touchY >= (DPAD_Y - DPAD_SIZE/2 - touchTolerance) && touchY <= (DPAD_Y + DPAD_SIZE/2 + touchTolerance)) {
         pacman.nextDir = { x: -1, y: 0 };
-        return;
+        return true;
     }
     // 右ボタン
-    if (touchX >= DPAD_X + offsetX - DPAD_SIZE && touchX <= DPAD_X + offsetX &&
-        touchY >= DPAD_Y - DPAD_SIZE/2 && touchY <= DPAD_Y + DPAD_SIZE/2) {
+    if (touchX >= (DPAD_X + offsetX - DPAD_SIZE - touchTolerance) && touchX <= (DPAD_X + offsetX + touchTolerance) &&
+        touchY >= (DPAD_Y - DPAD_SIZE/2 - touchTolerance) && touchY <= (DPAD_Y + DPAD_SIZE/2 + touchTolerance)) {
         pacman.nextDir = { x: 1, y: 0 };
-        return;
+        return true;
     }
+    return false;
 }
 
 // ゴーストを表示する
